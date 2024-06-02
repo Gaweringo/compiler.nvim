@@ -14,13 +14,14 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.c")            -- working_directory/main.c
+  local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.c", false)     -- working_directory/main.c
   local files = utils.find_files_to_compile(entry_point, "*.c")              -- *.c files under entry_point_dir (recursively)
   local output_dir = utils.os_path(vim.fn.getcwd() .. "/bin/")               -- working_directory/bin/
   local output = utils.os_path(vim.fn.getcwd() .. "/bin/program")            -- working_directory/bin/program
   local arguments = "-Wall -g"                                               -- arguments can be overriden in .solution
   local final_message = "--task finished--"
 
+  entry_point = utils.os_path(entry_point) -- surround ""
 
   if selected_option == "option1" then
     local task = overseer.new_task({
@@ -73,11 +74,16 @@ function M.action(selected_option)
 
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
-        entry_point = utils.os_path(variables.entry_point)
+        entry_point = utils.os_path(variables.entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.c")
-        output = utils.os_path(variables.output)
+        output = utils.os_path(variables.output, false)
         output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))
         arguments = variables.arguments or arguments -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                 -- clean
                 " && mkdir -p " .. output_dir ..                                     -- mkdir
@@ -92,6 +98,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                                      -- run
                   " && echo " .. executable ..                                       -- echo
@@ -115,10 +122,13 @@ function M.action(selected_option)
       entry_points = utils.find_files(vim.fn.getcwd(), "main.c")
 
       for _, entry_point in ipairs(entry_points) do
-        entry_point = utils.os_path(entry_point)
+        entry_point = utils.os_path(entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.c")
-        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin")  -- entry_point/bin
-        output = utils.os_path(output_dir .. "/program")                              -- entry_point/bin/program
+        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin") -- entry_point/bin
+        output = utils.os_path(output_dir .. "/program")                             -- entry_point/bin/program
+
+        entry_point = utils.os_path(entry_point) -- surround ""
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                 -- clean
                 " && mkdir -p " .. output_dir ..                                     -- mkdir

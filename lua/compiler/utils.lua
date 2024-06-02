@@ -3,7 +3,7 @@
 local M = {}
 
 ---Recursively searches for files with the given name
--- in all directories under start_dir.
+---in all directories under start_dir.
 ---@param start_dir string A dir path string.
 ---@param file_name string A file path string.
 ---@return table files If any, a tables of files. Otherwise, a Empty table.
@@ -32,7 +32,7 @@ function M.find_files(start_dir, file_name)
 end
 
 ---Search recursively, starting by the directory
--- of the entry_point file. Return files matching the pattern.
+---of the entry_point file. Return files matching the pattern.
 ---@param entry_point string Entry point file of the program.
 ---@param pattern string File extension to search.
 ---@return string files_as_string Files separated by a space.
@@ -97,11 +97,11 @@ end
 
 ---Programatically require the backend for the current language.
 ---@return table|nil language The language backend.
--- If ./languages/<filetype>.lua doesn't exist, return nil.
+---If ./languages/<filetype>.lua doesn't exist, return nil.
 function M.require_language(filetype)
   local local_path = debug.getinfo(1, "S").source:sub(2)
   local local_path_dir = local_path:match("(.*[/\\])")
-  local module_file_path = M.os_path(local_path_dir .. "languages/" .. filetype .. ".lua")
+  local module_file_path = local_path_dir .. "languages/" .. filetype .. ".lua"
   local success, language = pcall(dofile, module_file_path)
 
   if success then return language
@@ -120,28 +120,34 @@ function M.file_exists(filename)
 end
 
 ---Function that returns the path of the .solution file if exists in the current
--- working diectory root, or nil otherwise.
+---working diectory root, or nil otherwise.
 ---@return string|nil path Path of the .solution file if exists in the current
--- working diectory root, or nil otherwise.
+---working diectory root, or nil otherwise.
 function M.get_solution_file()
   if M.file_exists(".solution.toml") then
-    return  M.os_path(vim.fn.getcwd() .. "/.solution.toml")
+    return  M.os_path(vim.fn.getcwd() .. "/.solution.toml", false)
   elseif M.file_exists(".solution") then
-    return  M.os_path(vim.fn.getcwd() .. "/.solution")
+    return  M.os_path(vim.fn.getcwd() .. "/.solution", false)
   else
     return nil
   end
 end
 
 ---Given a string, convert 'slash' to 'inverted slash' if on windows, and vice versa on UNIX.
--- Then return the resulting string.
+---Then return the resulting string.
 ---@param path string A path string.
+---@param surround boolean|nil path will be surrounded by "" unless 'false'.
 ---@return string|nil,nil path A path string formatted for the current OS.
-function M.os_path(path)
+function M.os_path(path, surround)
   if path == nil then return nil end
+  if surround == nil then surround = true end
   -- Get the platform-specific path separator
   local separator = string.sub(package.config, 1, 1)
-  return string.gsub(path, '[/\\]', separator)
+  if surround then
+    return '"' .. string.gsub(path, '[/\\]', separator) .. '"'
+  else
+    return string.gsub(path, '[/\\]', separator)
+  end
 end
 
 return M

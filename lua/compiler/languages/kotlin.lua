@@ -21,13 +21,15 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local entry_point = utils.os_path(vim.fn.getcwd() .. "/Main.kt")           -- working_directory/Main.kt
+  local entry_point = utils.os_path(vim.fn.getcwd() .. "/Main.kt", false)    -- working_directory/Main.kt
   local files = utils.find_files_to_compile(entry_point, "*.kt")             -- *.kt files under entry_point_dir (recursively)
   local output_dir = utils.os_path(vim.fn.getcwd() .. "/bin/")               -- working_directory/bin/
   local output = utils.os_path(vim.fn.getcwd() .. "/bin/MainKt")             -- working_directory/bin/MainKt.class
   local output_filename = "MainKt"                                           -- working_directory/bin/MainKt
   local arguments = ""                                                       -- arguments can be overriden in .solution
   local final_message = "--task finished--"
+
+  entry_point = utils.os_path(entry_point) -- surround ""
 
   --========================== Build as class ===============================--
   if selected_option == "option1" then
@@ -81,11 +83,16 @@ function M.action(selected_option)
 
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
-        entry_point = utils.os_path(variables.entry_point)
+        entry_point = utils.os_path(variables.entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.kt")
-        output = utils.os_path(variables.output)
+        output = utils.os_path(variables.output, false)
         output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))
         arguments = variables.arguments or arguments -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program (class) → " .. entry_point,
           cmd = "rm -f " .. output_dir .. "/*.class " .. " || true" ..                         -- clean
                 " && mkdir -p " .. output_dir ..                                               -- mkdir
@@ -125,9 +132,12 @@ function M.action(selected_option)
       entry_points = utils.find_files(vim.fn.getcwd(), "Main.kt")
 
       for _, entry_point in ipairs(entry_points) do
-        entry_point = utils.os_path(entry_point)
+        entry_point = utils.os_path(entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.kt")
         output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin")           -- entry_point/bin
+
+        entry_point = utils.os_path(entry_point) -- surround ""
+
         task = { "shell", name = "- Build program (class) → " .. entry_point,
           cmd = "rm -f " .. output_dir .. "/*.class " .. " || true" ..                         -- clean
                 " && mkdir -p " .. output_dir ..                                               -- mkdir
@@ -204,11 +214,16 @@ function M.action(selected_option)
 
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
-        entry_point = utils.os_path(variables.entry_point)
+        entry_point = utils.os_path(variables.entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.kt")
-        output = utils.os_path(variables.output)
+        output = utils.os_path(variables.output, false)
         output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))
         arguments = variables.arguments or arguments -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program (jar) → " .. entry_point,
           cmd = "rm -f " .. output .. " || true " ..                                                  -- clean
                 " && mkdir -p " .. output_dir ..                                                      -- mkdir
@@ -223,7 +238,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
-
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program (jar) → " .. executable,
             cmd = "java -jar " .. executable ..                                                -- run
                   " && echo " .. executable ..                                                 -- echo
@@ -247,10 +262,15 @@ function M.action(selected_option)
       entry_points = utils.find_files(vim.fn.getcwd(), "Main.kt")
 
       for _, entry_point in ipairs(entry_points) do
-        entry_point = utils.os_path(entry_point)
+        entry_point = utils.os_path(entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.kt")
         output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin")        -- entry_point/bin
-        output = utils.os_path(output_dir .. "/Main")                                       -- entry_point/bin/MainKt.jar
+        output = utils.os_path(output_dir .. "/Main", false)                                -- entry_point/bin/MainKt.jar
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output_dir = utils.os_path(output_dir)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output .. " || true " ..                                                      -- clean
                 " && mkdir -p " .. output_dir ..                                                          -- mkdir

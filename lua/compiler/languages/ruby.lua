@@ -13,10 +13,11 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local current_file = vim.fn.expand('%:p')                                  -- current file
+  local current_file = utils.os_path(vim.fn.expand('%:p'))                   -- current file
   local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.rb")           -- working_directory/main.rb
   local arguments = ""
   local final_message = "--task finished--"
+
 
   if selected_option == "option1" then
     local task = overseer.new_task({
@@ -67,6 +68,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                              -- run
                   " && echo " .. executable ..                               -- echo

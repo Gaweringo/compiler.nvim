@@ -13,11 +13,13 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local current_file = vim.fn.expand('%:p')                                                -- current file
-  local output_dir = utils.os_path(vim.fn.stdpath("cache") .. "/compiler/fortran/")        -- working_directory/bin/
+  local current_file = utils.os_path(vim.fn.expand('%:p'))                                 -- current file
+  local output_dir = utils.os_path(vim.fn.stdpath("cache") .. "/compiler/fortran/", false) -- working_directory/bin/
   local output = output_dir .. "program"                                                   -- working_directory/bin/program
   local arguments = ""                                                                     -- arguments can be overriden in .solution
   local final_message = "--task finished--"
+
+  output_dir = utils.os_path(output_dir) -- surround ""
 
   if selected_option == "option1" then
     local task = overseer.new_task({

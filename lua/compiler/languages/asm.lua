@@ -14,13 +14,15 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.asm")          -- working_directory/main.asm
+  local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.asm", false)   -- working_directory/main.asm
   local entry_point_dir = vim.fn.fnamemodify(entry_point, ":h")              -- working_directory/
   local files = utils.find_files(entry_point_dir, "*.asm")                   -- *.asm files under entry_point_dir (recursively)
   local output_dir = utils.os_path(vim.fn.getcwd() .. "/bin/")               -- working_directory/bin/
   local output = utils.os_path(vim.fn.getcwd() .. "/bin/program")            -- working_directory/bin/program
   local arguments = "-g"                                                     -- arguments can be overriden in .solution
   local final_message = "--task finished--"
+
+  entry_point = utils.os_path(entry_point) -- surround ""
 
   if selected_option == "option1" then
     -- Build .asm files in parallel
@@ -44,17 +46,17 @@ function M.action(selected_option)
       cmd = "ld " .. files .. " -o " .. output ..                                  -- link
             " && rm -f " .. files .. " || true" ..                                 -- clean
             " && " .. output ..                                                    -- run
-            " && echo " .. entry_point ..                                          -- echo
+            " && echo && echo " .. entry_point ..                                  -- echo
             " && echo '" .. final_message .. "'"
     }
     -- Run program
     local task_run = { "shell", name = "- Run program → " .. output,
       cmd = output ..                                                              -- run
-            " && echo " .. output ..                                               -- echo
+            " && echo && echo " .. output ..                                       -- echo
             " && echo '" .. final_message .. "'"
     }
     -- Runs tasks in order
-    task = overseer.new_task({
+    local task = overseer.new_task({
       name = "- Assembly compiler", strategy = { "orchestrator",
         tasks = {
           tasks_compile, -- Build .asm files in parallel
@@ -121,12 +123,16 @@ function M.action(selected_option)
 
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
-        entry_point = utils.os_path(variables.entry_point)
+        entry_point = utils.os_path(variables.entry_point, false)
         entry_point_dir = vim.fn.fnamemodify(entry_point, ":h")
         files = utils.find_files(entry_point_dir, "*.asm")
-        output = utils.os_path(variables.output)                              -- entry_point/bin/program
-        output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))        -- entry_point/bin
+        output = utils.os_path(variables.output, false)                      -- entry_point/bin/program
+        output_dir = output:match("^(.-[/\\])[^/\\]*$")                      -- entry_point/bin
         arguments = variables.arguments or arguments -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output = utils.os_path(output)
 
         -- Build .asm files in parallel
         local tasks_compile = {}
@@ -159,9 +165,10 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
-            cmd = executable ..                                                  -- run
-                  " && echo " .. executable ..                                   -- echo
+            cmd = executable ..                                              -- run
+                  " && echo && echo " .. executable ..                       -- echo
                   " && echo '" .. final_message .. "'"
           }
           table.insert(executables, task)  -- store all the executables we've created
@@ -184,11 +191,12 @@ function M.action(selected_option)
 
       -- For every entry point
       for _, entry_point in ipairs(entry_points) do
-        entry_point = utils.os_path(entry_point)
         entry_point_dir = vim.fn.fnamemodify(entry_point, ":h")
         files = utils.find_files(entry_point_dir, "*.asm")
-        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin")        -- entry_point/bin
-        output = utils.os_path(output_dir .. "/program")                                    -- entry_point/bin/program
+        output_dir = entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin"        -- entry_point/bin
+        output = utils.os_path(output_dir .. "/program")                     -- entry_point/bin/program
+
+        entry_point = utils.os_path(entry_point) -- surround ""
 
         -- Build .asm files in parallel
         local tasks_compile = {}
@@ -228,3 +236,4 @@ function M.action(selected_option)
 end
 
 return M
+

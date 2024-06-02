@@ -15,7 +15,7 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local entry_point = vim.fn.expand('%:p')                                   -- current buffer
+  local entry_point = utils.os_path(vim.fn.expand('%:p'))                    -- current buffer
   local arguments = ""                                                       -- arguments can be overriden in .solution
   local final_message = "--task finished--"
 
@@ -58,6 +58,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                                  -- run
                   " && echo " .. executable ..                                   -- echo

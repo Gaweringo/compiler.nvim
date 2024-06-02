@@ -84,11 +84,11 @@ local function get_cmake_opts(path)
   return options
 end
 
---- Given a Mesonfile, parse all the options,
---- and return them as a table.
---- @param path string Path to the meson.build
---- @return table options A table like:
---- { { text = "Meson hello", value = "hello", description = "Print Hello, World!", bau = "meson" }, ...}
+---Given a Mesonfile, parse all the options,
+---and return them as a table.
+---@param path string Path to the meson.build
+---@return table options A table like:
+---{ { text = "Meson hello", value = "hello", description = "Print Hello, World!", bau = "meson" }, ...}
 local function get_meson_opts(path)
   local options = {}
 
@@ -120,7 +120,7 @@ end
 ---Given a build.gradle.kts file, parse all the tasks,
 ---and return them as a table.
 ---
---- If the file is not found. It will fallback to build.gradle.
+---If the file is not found. It will fallback to build.gradle.
 ---@param path string Path to the build.gradle.kts file.
 ---@return table options A table like:
 --- { { text: "Gradle all", value="all", bau = "gradle"}, { text: "Gradle hello", value="hello", bau = "gradle"} ...}
@@ -184,13 +184,13 @@ local function get_gradle_opts(path)
   return options
 end
 
---- Given a package.json file, parse all the targets,
---- and return them as a table.
+---Given a package.json file, parse all the targets,
+---and return them as a table.
 ---
---- let g:NODEJS_PACKAGE_MANAGER can be defined to 'yarn' or 'npm' (default)
+---let g:NODEJS_PACKAGE_MANAGER can be defined to 'yarn' or 'npm' (default)
 ---@param path string Path to the package.json file.
 ---@return table options A table like:
---- { { text: "npm install", value="install", bau = "npm"}, { text: "npm start", value="start", bau = "npm"} ...}
+---{ { text: "npm install", value="install", bau = "npm"}, { text: "npm start", value="start", bau = "npm"} ...}
 local function get_nodejs_opts(path)
   local options = {}
 
@@ -260,44 +260,44 @@ end
 
 ---Function that call all bau function and combine the result in a table.
 ---@return table options A table that contain
---- the options of all bau available in the current working directory.
---- Empty table {} if none is found.
+---the options of all bau available in the current working directory.
+---Empty table {} if none is found.
 function M.get_bau_opts()
   local working_dir = vim.fn.getcwd()
   local options = {}
 
   -- make
   vim.list_extend(options, get_makefile_opts(
-    working_dir .. utils.os_path("/Makefile")
+    working_dir .. utils.os_path("/Makefile", false)
   ))
 
   -- cmake
   vim.list_extend(options, get_cmake_opts(
-    working_dir .. utils.os_path("/CMakeLists.txt")
+    working_dir .. utils.os_path("/CMakeLists.txt", false)
   ))
 
   -- meson
   vim.list_extend(options, get_meson_opts(
-    working_dir .. utils.os_path("/meson.build")
+    working_dir .. utils.os_path("/meson.build", false)
   ))
 
   -- gradle
   vim.list_extend(options, get_gradle_opts(
-    working_dir .. utils.os_path("/build.gradle.kts")
+    working_dir .. utils.os_path("/build.gradle.kts", false)
   ))
 
   -- nodejs
   vim.list_extend(options, get_nodejs_opts(
-    working_dir .. utils.os_path("/package.json")
+    working_dir .. utils.os_path("/package.json", false)
   ))
 
   return options
 end
 
 ---Programatically require a bau backend,
---- responsible for running the action selected by the user in the frontend.
+---responsible for running the action selected by the user in the frontend.
 ---@return table|nil bau The bau backend,
---- or nil, if ./bau/<bau>.lua doesn't exist.
+---or nil, if ./bau/<bau>.lua doesn't exist.
 function M.require_bau(bau)
   local local_path = debug.getinfo(1, "S").source:sub(2)
   local local_path_dir = local_path:match("(.*[/\\])")

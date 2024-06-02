@@ -83,6 +83,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                                      -- run
                   " && echo " .. executable ..                                       -- echo
@@ -187,9 +188,12 @@ function M.action(selected_option)
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
         entry_point = utils.os_path(variables.entry_point)
-        output = utils.os_path(variables.output)
+        output = utils.os_path(variables.output, false)
         output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))
         local arguments = variables.arguments or "" -- optional
+
+        output = utils.os_path(output) -- surround ""
+
         task = { "shell", name = "- Run program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                 -- clean
                 " && mkdir -p " .. output_dir ..                                     -- mkdir
@@ -204,6 +208,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                              -- run
                   " && echo " .. executable ..                               -- echo
@@ -227,9 +232,14 @@ function M.action(selected_option)
       entry_points = utils.find_files(vim.fn.getcwd(), "main.dart")
       local arguments = ""
       for _, entry_point in ipairs(entry_points) do
+        entry_point = utils.os_path(entry_point, false)
+        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "../bin", false)  -- entry_point/../bin
+        output = utils.os_path(output_dir .. "/main", false)                                    -- entry_point/bin/main
+
         entry_point = utils.os_path(entry_point)
-        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "../bin")  -- entry_point/../bin
-        output = utils.os_path(output_dir .. "/main")                                    -- entry_point/bin/main
+        output_dir = utils.os_path(output_dir)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd ="rm -f " .. output ..  " || true" ..                                  -- clean
                 " && mkdir -p " .. output_dir ..                                     -- mkdir

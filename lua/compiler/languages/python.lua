@@ -29,8 +29,8 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local current_file = vim.fn.expand('%:p')                                  -- current file
-  local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.py")           -- working_directory/main.py
+  local current_file = utils.os_path(vim.fn.expand('%:p'))                   -- current file
+  local entry_point = utils.os_path(vim.fn.getcwd() .. "/main.py", false)    -- working_directory/main.py
   local files = utils.find_files_to_compile(entry_point, "*.py")             -- *.py files under entry_point_dir (recursively)
   local output_dir = utils.os_path(vim.fn.getcwd() .. "/bin/")               -- working_directory/bin/
   local output = utils.os_path(vim.fn.getcwd() .. "/bin/program")            -- working_directory/bin/program
@@ -38,6 +38,7 @@ function M.action(selected_option)
   -- For python, arguments are not globally defined,
   -- as we have 3 different ways to run the code.
 
+  entry_point = utils.os_path(entry_point) -- surround ""
 
   --=========================== INTERPRETED =================================--
   if selected_option == "option1" then
@@ -89,6 +90,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                              -- run
                   " && echo " .. executable ..                               -- echo
@@ -197,10 +199,15 @@ function M.action(selected_option)
 
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
-        entry_point = utils.os_path(variables.entry_point)
-        output = utils.os_path(variables.output)
+        entry_point = utils.os_path(variables.entry_point, false)
+        output = utils.os_path(variables.output, false)
         output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))
         local arguments = variables.arguments or "--warn-implicit-exceptions --warn-unusual-code" -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                    -- clean
                 " && mkdir -p " .. output_dir ..                                        -- mkdir
@@ -217,6 +224,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                                         -- run
                   " && echo " .. executable ..                                          -- echo
@@ -240,10 +248,15 @@ function M.action(selected_option)
       entry_points = utils.find_files(vim.fn.getcwd(), "main.py")
 
       for _, entry_point in ipairs(entry_points) do
+        entry_point = utils.os_path(entry_point, false)
+        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin", false) -- entry_point/bin
+        output = utils.os_path(output_dir .. "/program")                                    -- entry_point/bin/program
+        local arguments = "--warn-implicit-exceptions --warn-unusual-code"                  -- optional
+
+        -- surround ""
         entry_point = utils.os_path(entry_point)
-        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin")    -- entry_point/bin
-        output = utils.os_path(output_dir .. "/program")                                -- entry_point/bin/program
-        local arguments = "--warn-implicit-exceptions --warn-unusual-code"              -- optional
+        output_dir = utils.os_path(output_dir)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                    -- clean
                 " && mkdir -p " .. output_dir ..                                        -- mkdir
@@ -277,8 +290,12 @@ function M.action(selected_option)
   --============================ BYTECODE ===================================--
   elseif selected_option == "option8" then
     local cache_dir = utils.os_path(vim.fn.stdpath "cache" .. "/compiler/pyinstall/")
+    output = utils.os_path(vim.fn.getcwd() .. "/bin/program", false)
     local output_filename = vim.fn.fnamemodify(output, ":t")
     local arguments = "--log-level WARN --python-option W" -- optional
+
+    output = utils.os_path(output)  -- surround ""
+
     local task = overseer.new_task({
       name = "- Python bytecode compiler",
       strategy = { "orchestrator",
@@ -299,8 +316,12 @@ function M.action(selected_option)
     vim.cmd("OverseerOpen")
   elseif selected_option == "option9" then
     local cache_dir = utils.os_path(vim.fn.stdpath "cache" .. "/compiler/pyinstall/")
+    output = utils.os_path(vim.fn.getcwd() .. "/bin/program", false)
     local output_filename = vim.fn.fnamemodify(output, ":t")
     local arguments = "--log-level WARN --python-option W" -- optional
+
+    output = utils.os_path(output)  -- surround ""
+
     local task = overseer.new_task({
       name = "- Python machine code compiler",
       strategy = { "orchestrator",
@@ -343,12 +364,17 @@ function M.action(selected_option)
       for entry, variables in pairs(config) do
         if entry == "executables" then goto continue end
         local cache_dir = utils.os_path(vim.fn.stdpath "cache" .. "/compiler/pyinstall/")
-        entry_point = utils.os_path(variables.entry_point)
+        entry_point = utils.os_path(variables.entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.py")
-        output = utils.os_path(variables.output)
+        output = utils.os_path(variables.output, false)
         local output_filename = vim.fn.fnamemodify(output, ":t")
         output_dir = utils.os_path(output:match("^(.-[/\\])[^/\\]*$"))
         local arguments = variables.arguments or "--log-level WARN --python-option W"   -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                    -- clean
                 " && mkdir -p " .. output_dir ..                                        -- mkdir
@@ -368,6 +394,7 @@ function M.action(selected_option)
       local solution_executables = config["executables"]
       if solution_executables then
         for entry, executable in pairs(solution_executables) do
+          executable = utils.os_path(executable)
           task = { "shell", name = "- Run program → " .. executable,
             cmd = executable ..                                                         -- run
                   " && echo " .. executable ..                                          -- echo
@@ -391,13 +418,19 @@ function M.action(selected_option)
       entry_points = utils.find_files(vim.fn.getcwd(), "main.py")
 
       for _, entry_point in ipairs(entry_points) do
-        entry_point = utils.os_path(entry_point)
+        entry_point = utils.os_path(entry_point, false)
         files = utils.find_files_to_compile(entry_point, "*.py")
-        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin")    -- entry_point/bin
-        output = utils.os_path(output_dir .. "/program")                                -- entry_point/bin/program
+        output_dir = utils.os_path(entry_point:match("^(.-[/\\])[^/\\]*$") .. "bin", false) -- entry_point/bin
+        output = utils.os_path(output_dir .. "/program", false)                             -- entry_point/bin/program
         local cache_dir = utils.os_path(vim.fn.stdpath "cache" .. "/compiler/pyinstall/")
         local output_filename = vim.fn.fnamemodify(output, ":t")
         local arguments = "--log-level WARN --python-option W"                          -- optional
+
+        -- surround ""
+        entry_point = utils.os_path(entry_point)
+        output_dir = utils.os_path(output_dir)
+        output = utils.os_path(output)
+
         task = { "shell", name = "- Build program → " .. entry_point,
           cmd = "rm -f " .. output ..  " || true" ..                                    -- clean
                 " && mkdir -p " .. cache_dir ..                                         -- mkdir

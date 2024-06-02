@@ -12,7 +12,7 @@ M.options = {
 function M.action(selected_option)
   local utils = require("compiler.utils")
   local overseer = require("overseer")
-  local current_file = vim.fn.expand('%:p')                                  -- current file
+  local current_file = utils.os_path(vim.fn.expand('%:p'))                   -- current file
   local entry_point = utils.os_path(vim.fn.getcwd() .. "/src/index.ts")      -- working_directory/index.ts
   local output_dir = utils.os_path(vim.fn.getcwd() .. "/dist/")              -- working_directory/dist/
   local arguments = "--outDir " .. output_dir
