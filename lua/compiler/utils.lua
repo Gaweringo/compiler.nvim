@@ -18,7 +18,7 @@ function M.find_files(start_dir, file_name, surround)
   -- Create the find command with appropriate flags for recursive searching
   local find_command
   if string.sub(package.config, 1, 1) == "\\" then -- Windows
-    find_command = string.format('powershell.exe -Command "Get-ChildItem -Path \\"%s\\" -Recurse -Filter \\"%s\\" -File -Exclude \\".git\\" -ErrorAction SilentlyContinue"', start_dir, file_name)
+    find_command = string.format('powershell.exe -Command "Get-ChildItem -Path \\"%s\\" -Recurse -Filter \\"%s\\" -File -Exclude \\".git\\" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName"', start_dir, file_name, start_dir)
   else -- UNIX-like systems
     find_command = string.format('find "%s" -type d -name ".git" -prune -o -type f -name "%s" -print 2>/dev/null', start_dir, file_name)
   end
@@ -162,6 +162,29 @@ function M.os_path(path, surround)
   end
 
   return string.gsub(path, '[/\\]', separator)
+end
+
+---Gives you the correct commands for `rm`, `mkdir` and ignoring errors (`|| true` on unix)
+---for the current OS.
+---@usage local rm, mkdir, ignore_error = get_commands()
+---return table commands A table like { rm = "..", mkdir = "..", ignore_error = ".." }
+---@return string rm A command equivalent to `rm -f`
+---@return string mkdir A command equivalent to `mkdir -p`
+---@return string ignore_error The construct to ignore an error from the previous command
+function M.get_commands()
+  local commands = {}
+  -- Unix versions
+  commands.rm = "rm -f "
+  commands.mkdir = "mkdir -p "
+  commands.ignore_error = " || true"
+
+  if string.sub(package.config, 1, 1) == "\\" then -- Windows
+    commands.rm = "rd /s /q "
+    commands.mkdir = "mkdir "
+    commands.ignore_error = " > nul 2> nul || cd." -- rd and mkdir print errors, which we redirect to nul, so they don't show up
+  end
+
+  return commands.rm, commands.mkdir, commands.ignore_error
 end
 
 return M
