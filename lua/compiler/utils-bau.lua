@@ -292,6 +292,44 @@ local function get_nodejs_opts(path)
   return options
 end
 
+---Given a justfile file, parse all the targets,
+---and return them as a table.
+---@param path string Path to the justfile.
+---@return table options A table like:
+--- { { text: "Just all", value="all", bau = "just"}, { text: "just hello", value="hello", bau = "just"} ...}
+local function get_justfile_opts(path)
+  local options = {}
+
+  -- Open the justfile for reading
+  local file = io.open(path, "r")
+
+  if file then
+    local in_target = false
+
+    -- Iterate through each line in the Makefile
+    for line in file:lines() do
+      -- Check for lines starting with a target rule (e.g., "target: dependencies")
+      local target = line:match "^(.-):"
+      if target then
+        in_target = true
+        -- Exclude the ":" and add the option to the list with text and value fields
+        table.insert(
+          options,
+          { text = "just " .. target, value = target, bau = "just" }
+        )
+      elseif in_target then
+        -- If we're inside a target block, stop adding options
+        in_target = false
+      end
+    end
+
+    -- Close the justfile
+    file:close()
+  end
+
+  return options
+end
+
 
 -- FRONTEND
 -- Public functions to call from the frontend.
@@ -331,6 +369,11 @@ function M.get_bau_opts()
   -- nodejs
   vim.list_extend(options, get_nodejs_opts(
     working_dir .. utils.os_path("/package.json")
+  ))
+
+  -- just
+  vim.list_extend(options, get_justfile_opts(
+    working_dir .. utils.os_path("/justfile")
   ))
 
   return options
